@@ -7,6 +7,7 @@ class Organization(Document):
     name: str
     slug: Indexed(str, unique=True)
     industry: Optional[str] = None
+    website: Optional[str] = None
     plan: str = "Enterprise"
     logo: Optional[str] = None
     status: str = "active"

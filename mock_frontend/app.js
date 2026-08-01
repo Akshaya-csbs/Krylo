@@ -1,9 +1,9 @@
-// Klyros Enterprise Brand Intelligence Test Bench Application Logic
+// Klyro Enterprise Brand Intelligence Test Bench Application Logic
 const API_BASE = "http://localhost:8000/api/v1";
 
-let activeToken = localStorage.getItem("klyros_token") || null;
-let activeUser = JSON.parse(localStorage.getItem("klyros_user") || "null");
-let currentBrandId = localStorage.getItem("klyros_brand_id") || null;
+let activeToken = localStorage.getItem("klyro_token") || null;
+let activeUser = JSON.parse(localStorage.getItem("klyro_user") || "null");
+let currentBrandId = localStorage.getItem("klyro_brand_id") || null;
 let selectedFiles = [];
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -62,7 +62,7 @@ function setupEventListeners() {
   // Brand selection
   document.getElementById("brandSelect").addEventListener("change", (e) => {
     currentBrandId = e.target.value;
-    localStorage.setItem("klyros_brand_id", currentBrandId);
+    localStorage.setItem("klyro_brand_id", currentBrandId);
     loadBrandAssets();
   });
 
@@ -106,8 +106,8 @@ async function autoLoginDemoUser() {
     if (json.success) {
       activeToken = json.data.access_token;
       activeUser = json.data.user;
-      localStorage.setItem("klyros_token", activeToken);
-      localStorage.setItem("klyros_user", JSON.stringify(activeUser));
+      localStorage.setItem("klyro_token", activeToken);
+      localStorage.setItem("klyro_user", JSON.stringify(activeUser));
       updateUserUI();
     }
   } catch (err) {
@@ -178,7 +178,7 @@ async function createNewBrand() {
   if (json.success) {
     document.getElementById("brandModal").style.display = "none";
     currentBrandId = json.data.id;
-    localStorage.setItem("klyros_brand_id", currentBrandId);
+    localStorage.setItem("klyro_brand_id", currentBrandId);
     await loadBrands();
   }
 }

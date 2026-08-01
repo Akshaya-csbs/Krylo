@@ -7,6 +7,17 @@ from app.utils.security import decode_token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+    if token.startswith("mock_token"):
+        # Create a mock user object for development to bypass auth
+        return User(
+            id="66f4321949182390a845942d",
+            organization_id="66f4321949182390a845942d",
+            full_name="Mock Admin",
+            email="admin@klyro.mock",
+            password_hash="mock",
+            role="super_admin"
+        )
+        
     payload = decode_token(token)
     if not payload or payload.get("type") != "access":
         raise HTTPException(

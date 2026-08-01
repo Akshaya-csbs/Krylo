@@ -24,9 +24,9 @@ interface BrandInfo {
 }
 
 interface BrandIdentityData {
-  voice: string;
-  visual: string;
-  brand_summary: string;
+  voice?: Record<string, string> | string;
+  visual?: Record<string, string> | string;
+  brand_summary?: string;
   services?: string[];
   keywords?: string[];
   social_links?: Record<string, string>;

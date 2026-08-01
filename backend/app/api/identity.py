@@ -56,6 +56,9 @@ async def get_identity(brand_id: str, current_user: User = Depends(get_current_u
         design_rules=identity.design_rules,
         brand_summary=identity.brand_summary,
         confidence_score=identity.confidence_score,
+        services=getattr(identity, 'services', []),
+        social_links=getattr(identity, 'social_links', {}),
+        metrics=getattr(identity, 'metrics', {}),
         status=identity.status,
         assets_processed_count=identity.assets_processed_count
     )

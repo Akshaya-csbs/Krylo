@@ -3,6 +3,7 @@ import httpx
 from typing import List
 from app.models.identity import BrandIdentity
 from app.models.brand import BrandAsset, Brand
+from app.config import settings
 import random
 
 class AIAnalysisService:
@@ -49,14 +50,14 @@ Ensure the metrics are realistic but optimistic for their industry."""
             try:
                 async with httpx.AsyncClient() as client:
                     response = await client.post(
-                        "https://api.groq.com/openai/v1/chat/completions",
+                        f"{settings.GROQ_BASE_URL}/chat/completions",
                         headers={
                             "Authorization": f"Bearer {groq_api_key}",
                             "Content-Type": "application/json"
                         },
                         json={
-                            "model": "llama-3.1-70b-versatile",
-                            "messages": [{"role": "system", "content": system_prompt}],
+                            "model": settings.GROQ_TEXT_MODEL,
+                            "messages": [{"role": "user", "content": system_prompt}],
                             "temperature": 0.7,
                             "response_format": {"type": "json_object"}
                         },

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Lock, Mail, Github } from "lucide-react";
+import { ArrowRight, Lock, Mail, GitBranch } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function LoginPage() {
@@ -145,7 +145,7 @@ export default function LoginPage() {
               </button>
               <button className="w-full inline-flex justify-center py-2.5 px-4 border border-slate-200 rounded-lg shadow-sm bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 transition-colors">
                 <span className="sr-only">Sign in with GitHub</span>
-                <Github className="w-5 h-5 text-slate-800" />
+                <GitBranch className="w-5 h-5 text-slate-800" />
               </button>
             </div>
           </div>

@@ -26,15 +26,6 @@ class BrandService:
 
     @staticmethod
     async def get_brand_by_id(brand_id: str, org_id: str) -> Brand:
-        if brand_id == "66f4321949182390a845942d":
-            return Brand(
-                organization_id=org_id,
-                name="Mock Brand",
-                industry="Tech",
-                website="https://mock.com",
-                created_by="mock"
-            )
-            
         brand = await Brand.get(brand_id)
         if not brand or brand.organization_id != org_id:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Brand not found")
@@ -103,11 +94,8 @@ class BrandService:
         
         # Trigger dynamic AI analysis on the uploaded assets
         from app.services.ai_analysis_service import AIAnalysisService
-        # We don't have the API key in this context easily unless passed from the frontend,
-        # but the fallback generation inside AIAnalysisService will dynamically mock it if groq fails/is absent.
-        import os
-        groq_api_key = os.getenv("GROQ_API_KEY", None)
-        await AIAnalysisService.analyze_assets_and_update_identity(brand_id, uploaded_assets, groq_api_key)
+        from app.config import settings
+        await AIAnalysisService.analyze_assets_and_update_identity(brand_id, uploaded_assets, settings.GROQ_API_KEY)
         
         return uploaded_assets, job
 

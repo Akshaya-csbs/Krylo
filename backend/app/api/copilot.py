@@ -6,13 +6,16 @@ from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.brand import Brand
 from app.models.identity import BrandIdentity
+from app.config import settings
 
 router = APIRouter(prefix="/copilot", tags=["Copilot"])
 
 @router.post("/chat", response_model=StandardResponse)
 async def chat_with_copilot(req: CopilotRequest, current_user: User = Depends(get_current_user)):
-    if not req.groq_api_key:
-        raise HTTPException(status_code=400, detail="Groq API Key is required for the Copilot.")
+    # Use the key from the request, or fall back to the server-side key from .env
+    api_key = req.groq_api_key or settings.GROQ_API_KEY
+    if not api_key:
+        raise HTTPException(status_code=400, detail="No Groq API Key available. Set GROQ_API_KEY in .env or pass it from the UI.")
 
     # 1. Fetch Brand Context
     brand = await Brand.get(req.brand_id)
@@ -49,13 +52,13 @@ Rules:
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                "https://api.groq.com/openai/v1/chat/completions",
+                f"{settings.GROQ_BASE_URL}/chat/completions",
                 headers={
-                    "Authorization": f"Bearer {req.groq_api_key}",
+                    "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "llama-3.1-70b-versatile",
+                    "model": settings.GROQ_TEXT_MODEL,
                     "messages": groq_messages,
                     "temperature": 0.7,
                     "max_tokens": 1024

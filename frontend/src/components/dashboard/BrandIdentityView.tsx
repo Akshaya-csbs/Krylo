@@ -5,15 +5,15 @@ import { Loader2, Fingerprint, Activity, Tag, Users, CheckCircle, RefreshCw, Lay
 import { clsx } from "clsx";
 
 interface BrandIdentityData {
-  voice: string;
-  visual: string;
-  emotion: string;
-  audience: string;
-  keywords: string[];
-  personality: string;
-  design_rules: string;
-  brand_summary: string;
-  confidence_score: number;
+  voice?: Record<string, unknown> | string;
+  visual?: Record<string, unknown> | string;
+  emotion?: Record<string, unknown> | string;
+  audience?: Record<string, unknown> | string;
+  keywords?: string[];
+  personality?: string[] | string;
+  design_rules?: string[] | string;
+  brand_summary?: string;
+  confidence_score?: number;
 }
 
 export function BrandIdentityView() {
@@ -22,7 +22,23 @@ export function BrandIdentityView() {
   const [isRebuilding, setIsRebuilding] = useState(false);
   const [error, setError] = useState("");
 
-  const brandId = "66f4321949182390a845942d"; // Mock brand ID (24-char)
+  const brandId = "66f4321949182390a845942d";
+
+  // Safely convert Dict or string field to a displayable string
+  const safeText = (field: Record<string, unknown> | string | undefined): string => {
+    if (!field) return "—";
+    if (typeof field === "string") return field;
+    // If it's an object (dict), try to extract a meaningful value
+    const val = Object.values(field)[0];
+    if (typeof val === "string") return val;
+    return JSON.stringify(field).replace(/[{}"]|^{|}$/g, "");
+  };
+
+  const safeList = (field: string[] | string | undefined): string[] => {
+    if (!field) return [];
+    if (Array.isArray(field)) return field;
+    return [field];
+  };
 
   useEffect(() => {
     fetchIdentity();
@@ -43,29 +59,15 @@ export function BrandIdentityView() {
           setIdentity(null);
         }
       } else {
-        // Fallback for hackathon
-        setIdentity(getMockIdentity());
+        setIdentity(null);
       }
     } catch (err) {
       console.error(err);
-      // Fallback for hackathon
-      setIdentity(getMockIdentity());
+      setIdentity(null);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const getMockIdentity = (): BrandIdentityData => ({
-    voice: "Innovative, authoritative, yet approachable. We speak with conviction about the future of tech.",
-    visual: "Clean lines, deep blues and emerald greens, with a focus on glassmorphism and modern tech aesthetics.",
-    emotion: "Empowering and visionary. We want users to feel capable of building tomorrow.",
-    audience: "Gen-Z and Millennial tech professionals, startup founders, and enterprise developers.",
-    keywords: ["Innovation", "Future", "Scale", "Empower", "Build"],
-    personality: "The visionary architect who leads by example.",
-    design_rules: "Always use generous whitespace. Avoid stock photography. Favor abstract tech visuals.",
-    brand_summary: "A cutting-edge tech brand focused on empowering the next generation of builders with scalable tools and a visionary ethos.",
-    confidence_score: 96
-  });
 
   const rebuildIdentity = async () => {
     setIsRebuilding(true);
@@ -78,14 +80,9 @@ export function BrandIdentityView() {
       const result = await response.json();
       if (response.ok && result.success) {
         setIdentity(result.data.identity);
-      } else {
-        // Fallback for hackathon
-        setIdentity(getMockIdentity());
       }
     } catch (err) {
       console.error(err);
-      // Fallback for hackathon
-      setIdentity(getMockIdentity());
     } finally {
       setIsRebuilding(false);
     }
@@ -195,7 +192,7 @@ export function BrandIdentityView() {
             <h3 className="text-md font-bold text-slate-800">Brand Voice & Tone</h3>
           </div>
           <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
-            {identity.voice}
+            {safeText(identity.voice)}
           </p>
         </div>
 
@@ -207,7 +204,7 @@ export function BrandIdentityView() {
             <h3 className="text-md font-bold text-slate-800">Visual Aesthetic</h3>
           </div>
           <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
-            {identity.visual}
+            {safeText(identity.visual)}
           </p>
         </div>
 
@@ -219,7 +216,7 @@ export function BrandIdentityView() {
             <h3 className="text-md font-bold text-slate-800">Emotional Core</h3>
           </div>
           <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
-            {identity.emotion}
+            {safeText(identity.emotion)}
           </p>
         </div>
 
@@ -231,7 +228,7 @@ export function BrandIdentityView() {
             <h3 className="text-md font-bold text-slate-800">Target Audience</h3>
           </div>
           <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">
-            {identity.audience}
+            {safeText(identity.audience)}
           </p>
         </div>
 
@@ -244,7 +241,7 @@ export function BrandIdentityView() {
             Core Keywords
           </h3>
           <div className="flex flex-wrap gap-2">
-            {identity.keywords.map((kw, i) => (
+            {safeList(identity.keywords).map((kw, i) => (
               <span key={i} className="px-3 py-1 bg-white border border-slate-200 text-slate-700 text-xs font-medium rounded-full shadow-sm">
                 {kw}
               </span>
@@ -258,7 +255,7 @@ export function BrandIdentityView() {
             Design Rules
           </h3>
           <p className="text-sm text-slate-600 leading-relaxed">
-            {identity.design_rules}
+            {safeText(identity.design_rules)}
           </p>
         </div>
       </div>

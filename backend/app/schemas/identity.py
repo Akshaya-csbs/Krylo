@@ -19,6 +19,9 @@ class BrandIdentityDTO(BaseModel):
     design_rules: List[str]
     brand_summary: Optional[str]
     confidence_score: float
+    services: List[str] = []
+    social_links: Dict[str, str] = {}
+    metrics: Dict[str, str] = {}
     status: str
     assets_processed_count: int
     groq_raw_intelligence: Optional[Dict[str, Any]] = None

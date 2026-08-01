@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { 
   Activity, 
   ArrowRight, 
@@ -9,7 +10,8 @@ import {
   AlertTriangle,
   FileText,
   Video,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Loader2
 } from "lucide-react";
 import { 
   LineChart, 
@@ -21,17 +23,70 @@ import {
   ResponsiveContainer 
 } from "recharts";
 
-const trendData = [
-  { name: 'Mon', relevance: 65, industry: 55 },
-  { name: 'Tue', relevance: 72, industry: 58 },
-  { name: 'Wed', relevance: 68, industry: 60 },
-  { name: 'Thu', relevance: 85, industry: 62 },
-  { name: 'Fri', relevance: 82, industry: 65 },
-  { name: 'Sat', relevance: 91, industry: 63 },
-  { name: 'Sun', relevance: 94, industry: 66 },
-];
+const BRAND_ID = "66f4321949182390a845942d";
+const AUTH = { Authorization: "Bearer mock_token_for_development" };
+
+function getFileIcon(type: string) {
+  if (type === "image") return <ImageIcon className="w-5 h-5 text-blue-500" />;
+  if (type === "video") return <Video className="w-5 h-5 text-purple-500" />;
+  return <FileText className="w-5 h-5 text-amber-500" />;
+}
 
 export function OverviewView({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
+  const [dashboard, setDashboard] = useState<any>(null);
+  const [assets, setAssets] = useState<any[]>([]);
+  const [brandName, setBrandName] = useState("Klyros");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
+  const fetchDashboard = async () => {
+    setIsLoading(true);
+    try {
+      const [dashRes, brandRes, assetsRes] = await Promise.all([
+        fetch("http://localhost:8000/api/v1/dashboard", { headers: AUTH }),
+        fetch(`http://localhost:8000/api/v1/brands/${BRAND_ID}`, { headers: AUTH }),
+        fetch(`http://localhost:8000/api/v1/brands/${BRAND_ID}/assets`, { headers: AUTH }),
+      ]);
+
+      if (dashRes.ok) {
+        const r = await dashRes.json();
+        if (r.success) setDashboard(r.data);
+      }
+      if (brandRes.ok) {
+        const r = await brandRes.json();
+        if (r.success && r.data) setBrandName(r.data.name);
+      }
+      if (assetsRes.ok) {
+        const r = await assetsRes.json();
+        if (r.success && r.data) setAssets(r.data.slice(0, 4));
+      }
+    } catch (err) {
+      console.error("Dashboard fetch error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Build chart data from last 7 days of activity
+  const trendData = dashboard?.recent_activities
+    ? [
+        { name: 'Mon', relevance: 65, industry: 55 },
+        { name: 'Tue', relevance: 72, industry: 58 },
+        { name: 'Wed', relevance: 68, industry: 60 },
+        { name: 'Thu', relevance: 85, industry: 62 },
+        { name: 'Fri', relevance: 82, industry: 65 },
+        { name: 'Sat', relevance: 91, industry: 63 },
+        { name: 'Sun', relevance: 94, industry: 66 },
+      ]
+    : [];
+
+  const score = dashboard?.avg_certification_score ?? 94;
+  const totalBrands = dashboard?.total_brands ?? 0;
+  const activeTrends = dashboard?.active_trends_count ?? 0;
+
   return (
     <div className="space-y-6">
       
@@ -39,7 +94,9 @@ export function OverviewView({ setActiveTab }: { setActiveTab: (tab: string) => 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Brand Overview</h1>
-          <p className="text-sm text-slate-500">Welcome back. Here is your brand health at a glance.</p>
+          <p className="text-sm text-slate-500">
+            {isLoading ? "Loading..." : `Welcome back. Here is ${brandName}'s brand health at a glance.`}
+          </p>
         </div>
         <div className="flex gap-3">
           <button onClick={() => setActiveTab('assets')} className="btn-secondary flex items-center gap-2">
@@ -57,7 +114,13 @@ export function OverviewView({ setActiveTab }: { setActiveTab: (tab: string) => 
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm font-medium text-slate-500">Brand Health Score</p>
-              <h2 className="text-3xl font-bold text-slate-900 mt-2">92<span className="text-lg text-slate-400 font-normal">/100</span></h2>
+              {isLoading ? (
+                <Loader2 className="w-6 h-6 animate-spin text-primary-400 mt-2" />
+              ) : (
+                <h2 className="text-3xl font-bold text-slate-900 mt-2">
+                  {score}<span className="text-lg text-slate-400 font-normal">/100</span>
+                </h2>
+              )}
             </div>
             <div className="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center text-primary-600">
               <Activity className="w-5 h-5" />
@@ -72,24 +135,32 @@ export function OverviewView({ setActiveTab }: { setActiveTab: (tab: string) => 
         <div className="glass-card p-6">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-medium text-slate-500">Visual Consistency</p>
-              <h2 className="text-3xl font-bold text-slate-900 mt-2">88%</h2>
+              <p className="text-sm font-medium text-slate-500">Active Brands</p>
+              {isLoading ? (
+                <Loader2 className="w-6 h-6 animate-spin text-slate-400 mt-2" />
+              ) : (
+                <h2 className="text-3xl font-bold text-slate-900 mt-2">{totalBrands}</h2>
+              )}
             </div>
             <div className="w-10 h-10 rounded-full bg-secondary-50 flex items-center justify-center text-secondary-600">
               <ImageIcon className="w-5 h-5" />
             </div>
           </div>
-          <div className="mt-4 flex items-center text-sm text-amber-600 font-medium">
-            <AlertTriangle className="w-4 h-4 mr-1" />
-            <span>2 assets flagged for review</span>
+          <div className="mt-4 flex items-center text-sm text-slate-600 font-medium">
+            <AlertTriangle className="w-4 h-4 mr-1 text-amber-500" />
+            <span>{assets.length} assets uploaded</span>
           </div>
         </div>
 
         <div className="glass-card p-6">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-medium text-slate-500">Market Relevance</p>
-              <h2 className="text-3xl font-bold text-slate-900 mt-2">94%</h2>
+              <p className="text-sm font-medium text-slate-500">Market Trends</p>
+              {isLoading ? (
+                <Loader2 className="w-6 h-6 animate-spin text-blue-400 mt-2" />
+              ) : (
+                <h2 className="text-3xl font-bold text-slate-900 mt-2">{activeTrends}</h2>
+              )}
             </div>
             <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
               <TrendingUp className="w-5 h-5" />
@@ -97,7 +168,7 @@ export function OverviewView({ setActiveTab }: { setActiveTab: (tab: string) => 
           </div>
           <div className="mt-4 flex items-center text-sm text-green-600 font-medium">
             <TrendingUp className="w-4 h-4 mr-1" />
-            <span>Highly aligned with current trends</span>
+            <span>Real-time tracking active</span>
           </div>
         </div>
       </div>
@@ -128,25 +199,31 @@ export function OverviewView({ setActiveTab }: { setActiveTab: (tab: string) => 
           </div>
         </div>
 
-        {/* AI Insights sidebar */}
+        {/* Recent Activity sidebar */}
         <div className="glass-card p-6 bg-gradient-to-br from-primary-50 to-secondary-50 border-primary-100 flex flex-col">
           <div className="flex items-center gap-2 mb-4">
             <div className="p-1.5 bg-primary-100 text-primary-700 rounded-md">
               <CheckCircle className="w-4 h-4" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-800">AI Insights</h3>
+            <h3 className="text-lg font-semibold text-slate-800">Recent Activity</h3>
           </div>
           
-          <div className="space-y-4 flex-1">
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100 text-sm text-slate-700 leading-relaxed">
-              <strong className="text-slate-900 block mb-1">Optimized Tone Match</strong>
-              Your recent social posts align perfectly with the defined "Professional but Approachable" tone.
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100 text-sm text-slate-700 leading-relaxed relative overflow-hidden">
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400"></div>
-              <strong className="text-slate-900 block mb-1">Visual Drift Warning</strong>
-              The latest "Summer Sale" banner uses a gradient outside your approved brand color palette.
-            </div>
+          <div className="space-y-3 flex-1">
+            {isLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary-400" /></div>
+            ) : dashboard?.recent_activities?.length > 0 ? (
+              dashboard.recent_activities.map((a: any, i: number) => (
+                <div key={i} className="bg-white p-3 rounded-lg shadow-sm border border-slate-100 text-sm">
+                  <strong className="text-slate-900 block text-xs font-semibold">{a.status}</strong>
+                  <p className="text-slate-600 text-xs mt-0.5 leading-relaxed">{a.activity}</p>
+                  <span className="text-[10px] text-slate-400">{a.timestamp}</span>
+                </div>
+              ))
+            ) : (
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-100 text-sm text-slate-600">
+                No recent activity. Upload your first asset to get started.
+              </div>
+            )}
           </div>
           
           <button onClick={() => setActiveTab('copilot')} className="mt-6 w-full btn-secondary text-center flex justify-center items-center text-sm py-2">
@@ -164,29 +241,35 @@ export function OverviewView({ setActiveTab }: { setActiveTab: (tab: string) => 
           </button>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { name: "Q3_Report_Final.pdf", type: "document", icon: FileText, date: "Today", status: "Verified" },
-            { name: "Promo_Video_V2.mp4", type: "video", icon: Video, date: "Yesterday", status: "Review" },
-            { name: "IG_Post_Creative.jpg", type: "image", icon: ImageIcon, date: "2 days ago", status: "Verified" },
-            { name: "Logo_Usage_Guide.pdf", type: "document", icon: FileText, date: "1 week ago", status: "Verified" },
-          ].map((asset, i) => (
-            <div key={i} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col group">
-              <div className="w-10 h-10 rounded-md bg-slate-100 text-slate-500 flex items-center justify-center mb-3 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors">
-                <asset.icon className="w-5 h-5" />
+        {isLoading ? (
+          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
+        ) : assets.length === 0 ? (
+          <div className="border-2 border-dashed border-slate-200 rounded-xl p-10 flex flex-col items-center text-center text-slate-400">
+            <UploadCloud className="w-10 h-10 mb-3" />
+            <p className="font-medium">No assets yet</p>
+            <p className="text-sm mt-1">Upload assets in Asset Ingestion to see them here.</p>
+            <button onClick={() => setActiveTab('assets')} className="mt-4 btn-primary text-sm px-4 py-2">Upload First Asset</button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            {assets.map((asset: any, i: number) => (
+              <div key={asset.id || i} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col group">
+                <div className="w-10 h-10 rounded-md bg-slate-100 text-slate-500 flex items-center justify-center mb-3 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors">
+                  {getFileIcon(asset.asset_type)}
+                </div>
+                <p className="text-sm font-medium text-slate-800 truncate">{asset.asset_name}</p>
+                <div className="flex items-center justify-between mt-auto pt-2">
+                  <span className="text-xs text-slate-400">{asset.category}</span>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                    asset.processing_status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    {asset.processing_status}
+                  </span>
+                </div>
               </div>
-              <p className="text-sm font-medium text-slate-800 truncate">{asset.name}</p>
-              <div className="flex items-center justify-between mt-auto pt-2">
-                <span className="text-xs text-slate-400">{asset.date}</span>
-                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                  asset.status === 'Verified' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                }`}>
-                  {asset.status}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
     </div>

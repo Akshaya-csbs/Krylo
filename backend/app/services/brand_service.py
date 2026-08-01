@@ -101,6 +101,14 @@ class BrandService:
         )
         await job.insert()
         
+        # Trigger dynamic AI analysis on the uploaded assets
+        from app.services.ai_analysis_service import AIAnalysisService
+        # We don't have the API key in this context easily unless passed from the frontend,
+        # but the fallback generation inside AIAnalysisService will dynamically mock it if groq fails/is absent.
+        import os
+        groq_api_key = os.getenv("GROQ_API_KEY", None)
+        await AIAnalysisService.analyze_assets_and_update_identity(brand_id, uploaded_assets, groq_api_key)
+        
         return uploaded_assets, job
 
     @staticmethod

@@ -14,6 +14,9 @@ class BrandIdentity(Document):
     personality: List[str] = Field(default_factory=list)
     design_rules: List[str] = Field(default_factory=list)
     brand_summary: Optional[str] = None
+    services: List[str] = Field(default_factory=list)
+    social_links: Dict[str, str] = Field(default_factory=dict)
+    metrics: Dict[str, str] = Field(default_factory=dict)
     confidence_score: float = 0.95
     status: str = "ready"  # processing, ready, outdated
     assets_processed_count: int = 0

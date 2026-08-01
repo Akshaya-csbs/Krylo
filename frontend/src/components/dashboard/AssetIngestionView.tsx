@@ -27,6 +27,14 @@ interface BrandIdentityData {
   voice: string;
   visual: string;
   brand_summary: string;
+  services?: string[];
+  keywords?: string[];
+  social_links?: Record<string, string>;
+  metrics?: {
+    avg_engagement?: string;
+    monthly_reach?: string;
+    post_validation?: string;
+  };
 }
 
 export function AssetIngestionView() {
@@ -435,12 +443,22 @@ export function AssetIngestionView() {
                       <span className="px-3 py-1 bg-primary-50 text-primary-700 text-xs font-bold rounded-full border border-primary-100">
                         {brandCategory}
                       </span>
-                      <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full border border-indigo-100">
-                        Enterprise Grade
-                      </span>
-                      <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-100">
-                        B2B Focus
-                      </span>
+                      {brandIdentity?.keywords && brandIdentity.keywords.length > 0 ? (
+                        brandIdentity.keywords.map((tag, idx) => (
+                          <span key={idx} className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full border border-indigo-100">
+                            {tag}
+                          </span>
+                        ))
+                      ) : (
+                        <>
+                          <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full border border-indigo-100">
+                            Enterprise Grade
+                          </span>
+                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-100">
+                            B2B Focus
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <Globe className="absolute -bottom-10 -right-10 w-48 h-48 text-slate-50 opacity-50" />
@@ -451,24 +469,44 @@ export function AssetIngestionView() {
                   <div className="relative z-10">
                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Service & Links</h3>
                     <ul className="space-y-3 mb-6">
-                      <li className="flex items-center gap-2 text-sm font-medium">
-                        <CheckCircle className="w-4 h-4 text-emerald-400" /> Web Development
-                      </li>
-                      <li className="flex items-center gap-2 text-sm font-medium">
-                        <CheckCircle className="w-4 h-4 text-emerald-400" /> Cloud Architecture
-                      </li>
-                      <li className="flex items-center gap-2 text-sm font-medium">
-                        <CheckCircle className="w-4 h-4 text-emerald-400" /> AI Automation
-                      </li>
+                      {brandIdentity?.services && brandIdentity.services.length > 0 ? (
+                        brandIdentity.services.map((service, idx) => (
+                          <li key={idx} className="flex items-center gap-2 text-sm font-medium">
+                            <CheckCircle className="w-4 h-4 text-emerald-400" /> {service}
+                          </li>
+                        ))
+                      ) : (
+                        <>
+                          <li className="flex items-center gap-2 text-sm font-medium">
+                            <CheckCircle className="w-4 h-4 text-emerald-400" /> Web Development
+                          </li>
+                          <li className="flex items-center gap-2 text-sm font-medium">
+                            <CheckCircle className="w-4 h-4 text-emerald-400" /> Cloud Architecture
+                          </li>
+                          <li className="flex items-center gap-2 text-sm font-medium">
+                            <CheckCircle className="w-4 h-4 text-emerald-400" /> AI Automation
+                          </li>
+                        </>
+                      )}
                     </ul>
                   </div>
                   
                   <div className="relative z-10 pt-4 border-t border-slate-700">
                      <p className="text-xs text-slate-400 mb-2 font-medium">Connect</p>
-                     <div className="flex gap-2">
-                        <button className="flex-1 bg-slate-800 hover:bg-slate-700 py-1.5 rounded text-xs font-semibold border border-slate-600 transition-colors">Website</button>
-                        <button className="flex-1 bg-slate-800 hover:bg-slate-700 py-1.5 rounded text-xs font-semibold border border-slate-600 transition-colors">LinkedIn</button>
-                        <button className="flex-1 bg-slate-800 hover:bg-slate-700 py-1.5 rounded text-xs font-semibold border border-slate-600 transition-colors">Twitter</button>
+                     <div className="flex gap-2 flex-wrap">
+                        {brandIdentity?.social_links && Object.keys(brandIdentity.social_links).length > 0 ? (
+                          Object.entries(brandIdentity.social_links).map(([platform, link], idx) => (
+                            <a key={idx} href={link} target="_blank" rel="noreferrer" className="flex-1 text-center bg-slate-800 hover:bg-slate-700 py-1.5 rounded text-xs font-semibold border border-slate-600 transition-colors">
+                              {platform}
+                            </a>
+                          ))
+                        ) : (
+                          <>
+                            <button className="flex-1 bg-slate-800 hover:bg-slate-700 py-1.5 rounded text-xs font-semibold border border-slate-600 transition-colors">Website</button>
+                            <button className="flex-1 bg-slate-800 hover:bg-slate-700 py-1.5 rounded text-xs font-semibold border border-slate-600 transition-colors">LinkedIn</button>
+                            <button className="flex-1 bg-slate-800 hover:bg-slate-700 py-1.5 rounded text-xs font-semibold border border-slate-600 transition-colors">Twitter</button>
+                          </>
+                        )}
                      </div>
                   </div>
                   <Briefcase className="absolute -bottom-4 -right-4 w-32 h-32 text-slate-700 opacity-20" />
@@ -483,7 +521,7 @@ export function AssetIngestionView() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-slate-500 uppercase">Avg Engagement</p>
-                    <p className="text-2xl font-black text-slate-800">4.8%</p>
+                    <p className="text-2xl font-black text-slate-800">{brandIdentity?.metrics?.avg_engagement || "4.8%"}</p>
                   </div>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
@@ -492,7 +530,7 @@ export function AssetIngestionView() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-slate-500 uppercase">Monthly Reach</p>
-                    <p className="text-2xl font-black text-slate-800">1.2M</p>
+                    <p className="text-2xl font-black text-slate-800">{brandIdentity?.metrics?.monthly_reach || "1.2M"}</p>
                   </div>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
@@ -501,7 +539,7 @@ export function AssetIngestionView() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-slate-500 uppercase">Post Validation</p>
-                    <p className="text-2xl font-black text-slate-800">92/100</p>
+                    <p className="text-2xl font-black text-slate-800">{brandIdentity?.metrics?.post_validation || "92/100"}</p>
                   </div>
                 </div>
               </div>

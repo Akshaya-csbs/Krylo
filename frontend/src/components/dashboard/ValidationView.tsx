@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, CheckCircle, AlertTriangle, AlertCircle, RefreshCw, BarChart } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -28,8 +28,30 @@ export function ValidationView() {
   const [isChecking, setIsChecking] = useState(false);
   const [report, setReport] = useState<ValidationReport | null>(null);
   const [error, setError] = useState("");
+  const [brandId, setBrandId] = useState("");
 
-  const brandId = "66f4321949182390a845942d"; // Mock brand ID (24-char)
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+    return token ? `Bearer ${token}` : "";
+  };
+
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/v1/brands", {
+          headers: { 'Authorization': getAuthHeader() }
+        });
+        const result = await response.json();
+        if (result.success && result.data && result.data.length > 0) {
+          setBrandId(result.data[0].id);
+        }
+      } catch (e) {
+        console.error("Failed to load active brand in ValidationView:", e);
+      }
+    };
+    fetchBrands();
+  }, []);
+
 
   const runValidation = async () => {
     if (!textContent.trim()) {
@@ -45,7 +67,7 @@ export function ValidationView() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer mock_token_for_development"
+          "Authorization": getAuthHeader()
         },
         body: JSON.stringify({
           brand_id: brandId,

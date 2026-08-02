@@ -44,9 +44,7 @@ export function ImpactSimulationView() {
     return token ? `Bearer ${token}` : "";
   };
 
-  const getBrandId = () => {
-    return "66f4321949182390a845942d"; // Hardcoded for hackathon demo to match BrandIdentityView
-  };
+
 
   const runSimulation = async () => {
     if (!textContent.trim()) {

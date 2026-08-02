@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layers, FileText, Image as ImageIcon, File, Link as LinkIcon, Loader2, AlertCircle, CheckCircle, PenTool, Search } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -19,8 +19,30 @@ export function LayeredAnalysisView() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResponse | null>(null);
+  const [brandId, setBrandId] = useState("");
 
-  const brandId = "66f4321949182390a845942d";
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+    return token ? `Bearer ${token}` : "";
+  };
+
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/v1/brands", {
+          headers: { 'Authorization': getAuthHeader() }
+        });
+        const result = await response.json();
+        if (result.success && result.data && result.data.length > 0) {
+          setBrandId(result.data[0].id);
+        }
+      } catch (e) {
+        console.error("Failed to load active brand in LayeredAnalysisView:", e);
+      }
+    };
+    fetchBrands();
+  }, []);
+
 
   const handleAnalyze = async () => {
     if (activeTab === "text" && !content.trim()) return;
@@ -50,7 +72,7 @@ export function LayeredAnalysisView() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer mock_token_for_development"
+          "Authorization": getAuthHeader()
         },
         body: JSON.stringify({
           brand_id: brandId,

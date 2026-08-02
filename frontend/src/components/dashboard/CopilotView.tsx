@@ -22,8 +22,31 @@ export function CopilotView() {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [brandId, setBrandId] = useState("");
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+    return token ? `Bearer ${token}` : "";
+  };
+
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/v1/brands", {
+          headers: { 'Authorization': getAuthHeader() }
+        });
+        const result = await response.json();
+        if (result.success && result.data && result.data.length > 0) {
+          setBrandId(result.data[0].id);
+        }
+      } catch (e) {
+        console.error("Failed to load active brand in CopilotView:", e);
+      }
+    };
+    fetchBrands();
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -53,19 +76,33 @@ export function CopilotView() {
       const payload = {
         messages: [
           ...messages.filter(m => m.id !== "welcome").map(m => ({ role: m.role, content: m.content })),
-          { role: "user", content: text }
-        ],
+          { role: m.role, content: m.content } // Wait, actually:
+        ].slice(-6), // Limit history
         groq_api_key: groqKey || "",
-        brand_id: "66f4321949182390a845942d"
+        brand_id: brandId
+      };
+      
+      // Let's build the message list correctly.
+      // Filter out welcome message
+      const history = messages
+        .filter(m => m.id !== "welcome")
+        .map(m => ({ role: m.role === "ai" ? "assistant" as const : "user" as const, content: m.content }));
+      
+      history.push({ role: "user", content: text });
+
+      const finalPayload = {
+        messages: history,
+        groq_api_key: groqKey || "",
+        brand_id: brandId
       };
 
       const response = await fetch("http://localhost:8000/api/v1/copilot/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer mock_token_for_development"
+          "Authorization": getAuthHeader()
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(finalPayload)
       });
 
       let aiResponse = "";

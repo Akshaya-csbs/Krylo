@@ -140,18 +140,18 @@ export function OverviewView({ setActiveTab }: { setActiveTab: (tab: string) => 
           </div>
           <div className="mt-4 flex items-center text-sm text-green-600 font-medium">
             <TrendingUp className="w-4 h-4 mr-1" />
-            <span>+4% from last week</span>
+            <span>AI Confidence Score</span>
           </div>
         </div>
 
         <div className="glass-card p-6">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-medium text-slate-500">Active Brands</p>
+              <p className="text-sm font-medium text-slate-500">Ingested Assets</p>
               {isLoading ? (
                 <Loader2 className="w-6 h-6 animate-spin text-slate-400 mt-2" />
               ) : (
-                <h2 className="text-3xl font-bold text-slate-900 mt-2">{totalBrands}</h2>
+                <h2 className="text-3xl font-bold text-slate-900 mt-2">{dashboard?.total_assets ?? 0}</h2>
               )}
             </div>
             <div className="w-10 h-10 rounded-full bg-secondary-50 flex items-center justify-center text-secondary-600">
@@ -160,7 +160,7 @@ export function OverviewView({ setActiveTab }: { setActiveTab: (tab: string) => 
           </div>
           <div className="mt-4 flex items-center text-sm text-slate-600 font-medium">
             <AlertTriangle className="w-4 h-4 mr-1 text-amber-500" />
-            <span>{assets.length} assets uploaded</span>
+            <span>{dashboard?.completed_assets ?? 0} processed, {dashboard?.processing_assets ?? 0} analyzing</span>
           </div>
         </div>
 

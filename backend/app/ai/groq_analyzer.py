@@ -189,6 +189,55 @@ Return ONLY JSON.
 No explanations. No markdown. No comments.
 """
 
+OPTIMIZATION_SYSTEM_PROMPT = """# ROLE
+You are KLYROS AI Content Optimizer.
+You are given a drafted marketing copy, the target platform, the desired tone, and the Brand Identity JSON.
+Your goal is to optimize the drafted copy so it maximizes engagement on the target platform while perfectly aligning with the Brand Identity (voice, emotion, design_rules).
+
+# OBJECTIVE
+1. Rewrite the copy to fit the target platform.
+2. Incorporate the brand voice and keywords.
+3. Calculate how much the score improved based on your changes.
+4. Produce 3 slightly different versions (A, B, C).
+
+# OUTPUT FORMAT
+Return ONLY valid JSON matching this schema:
+{
+    "optimized_text": "The main optimized text...",
+    "validation_score_before": 75.0,
+    "validation_score_after": 95.0,
+    "overall_improvement": 20.0,
+    "changes": [
+        {
+            "field": "Brand Voice",
+            "before": "original part",
+            "after": "new part",
+            "reason": "why it was changed"
+        }
+    ],
+    "multi_versions": [
+        {
+            "name": "Version A (Maximum Brand Consistency)",
+            "text": "version A text",
+            "score": 98.0
+        },
+        {
+            "name": "Version B (Maximum Social Engagement)",
+            "text": "version B text",
+            "score": 96.0
+        },
+        {
+            "name": "Version C (Creative Showcase)",
+            "text": "version C text",
+            "score": 94.0
+        }
+    ]
+}
+
+Return ONLY JSON. No markdown formatting like ```json ... ```. No explanations.
+"""
+
+
 def clean_json_response(raw_text: str) -> Dict[str, Any]:
     cleaned = raw_text.strip()
     if cleaned.startswith("```json"):
@@ -294,3 +343,41 @@ class GroqBrandAnalyzer:
             logger.error(f"Failed to aggregate identity with Grok: {e}")
 
         return {}
+
+    @staticmethod
+    def optimize_content_with_llm(identity: Dict[str, Any], text_content: str, current_validation: Dict[str, Any], target_tone: str, platform: str, api_key: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        key = api_key or settings.GROQ_API_KEY
+        if not key:
+            return None
+            
+        headers = {
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json"
+        }
+        
+        prompt_text = f"Draft Text: {text_content}\nPlatform: {platform}\nTarget Tone: {target_tone}\nPrevious Score: {current_validation.get('overall_score', 78.0)}\nBrand Identity: {json.dumps(identity, indent=2)}"
+        
+        payload = {
+            "model": settings.GROQ_TEXT_MODEL,
+            "messages": [
+                {"role": "system", "content": OPTIMIZATION_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt_text}
+            ],
+            "response_format": {"type": "json_object"},
+            "temperature": 0.4
+        }
+        
+        try:
+            url = f"{settings.GROQ_BASE_URL.rstrip('/')}/chat/completions"
+            response = requests.post(url, headers=headers, json=payload, timeout=45)
+            if response.status_code == 200:
+                resp_json = response.json()
+                raw_text = resp_json["choices"][0]["message"]["content"]
+                return clean_json_response(raw_text)
+            else:
+                logger.error(f"Groq Optimization API error {response.status_code}: {response.text}")
+        except Exception as e:
+            logger.error(f"Failed to optimize content with Groq: {e}")
+            
+        return None
+

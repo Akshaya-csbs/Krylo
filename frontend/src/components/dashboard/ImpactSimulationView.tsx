@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Activity, Play, Sparkles, TrendingUp, ChevronRight, FileText, Settings2, CheckCircle } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -22,12 +22,39 @@ export function ImpactSimulationView() {
   const [report, setReport] = useState<OptimizationReport | null>(null);
   const [optimizedText, setOptimizedText] = useState("");
   const [error, setError] = useState("");
+  const [brandId, setBrandId] = useState("");
 
-  const brandId = "66f4321949182390a845942d"; // Mock brand ID (24-char)
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/v1/brands", {
+          headers: { 'Authorization': getAuthHeader() }
+        });
+        const result = await response.json();
+        if (result.success && result.data && result.data.length > 0) {
+          setBrandId(result.data[0].id);
+        }
+      } catch (e) {}
+    };
+    fetchBrands();
+  }, []);
+
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+    return token ? `Bearer ${token}` : "";
+  };
+
+  const getBrandId = () => {
+    return "66f4321949182390a845942d"; // Hardcoded for hackathon demo to match BrandIdentityView
+  };
 
   const runSimulation = async () => {
     if (!textContent.trim()) {
       setError("Please provide campaign copy to simulate.");
+      return;
+    }
+    if (!brandId) {
+      setError("No brand found. Please create a brand first.");
       return;
     }
     
@@ -42,7 +69,7 @@ export function ImpactSimulationView() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer mock_token_for_development"
+          "Authorization": getAuthHeader()
         },
         body: JSON.stringify({
           brand_id: brandId,
@@ -57,9 +84,7 @@ export function ImpactSimulationView() {
       const createResult = await createResponse.json();
       
       if (!createResponse.ok || !createResult.success) {
-        // Fallback immediately instead of throwing error
-        setReport(getMockReport());
-        setOptimizedText(getMockOptimizedText(textContent));
+        setError(createResult.message || "Failed to initiate simulation.");
         setIsSimulating(false);
         return;
       }
@@ -72,7 +97,7 @@ export function ImpactSimulationView() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer mock_token_for_development"
+          "Authorization": getAuthHeader()
         },
         body: JSON.stringify({
           campaign_id: campaignId,
@@ -87,31 +112,14 @@ export function ImpactSimulationView() {
         setReport(optResult.data.report);
         setOptimizedText(optResult.data.optimized_text);
       } else {
-        // Hackathon fallback
-        setReport(getMockReport());
-        setOptimizedText(getMockOptimizedText(textContent));
+        setError(optResult.message || "Optimization failed.");
       }
 
     } catch (err: any) {
-      // Silently fall back to avoid Next.js dev overlay from catching console.error(err)
-      setReport(getMockReport());
-      setOptimizedText(getMockOptimizedText(textContent));
+      setError("An unexpected error occurred during simulation.");
     } finally {
       setIsSimulating(false);
     }
-  };
-
-  const getMockReport = (): OptimizationReport => ({
-    id: "mock-opt-123",
-    original_version: 1,
-    optimized_version: 2,
-    validation_score_before: 72,
-    validation_score_after: 96,
-    overall_improvement: 24
-  });
-
-  const getMockOptimizedText = (original: string): string => {
-    return `✨ This is an AI-optimized version of your copy, perfectly tailored for ${platform} with a ${targetTone} tone!\n\n${original}\n\n👉 Let's build the future together! 🚀 #Innovation #TechLeadership`;
   };
 
   return (

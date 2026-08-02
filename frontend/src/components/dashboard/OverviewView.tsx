@@ -23,8 +23,10 @@ import {
   ResponsiveContainer 
 } from "recharts";
 
-const BRAND_ID = "66f4321949182390a845942d";
-const AUTH = { Authorization: "Bearer mock_token_for_development" };
+const getAuthHeader = () => {
+  const token = localStorage.getItem("token");
+  return token ? `Bearer ${token}` : "";
+};
 
 function getFileIcon(type: string) {
   if (type === "image") return <ImageIcon className="w-5 h-5 text-blue-500" />;
@@ -45,23 +47,33 @@ export function OverviewView({ setActiveTab }: { setActiveTab: (tab: string) => 
   const fetchDashboard = async () => {
     setIsLoading(true);
     try {
-      const [dashRes, brandRes, assetsRes] = await Promise.all([
-        fetch("http://localhost:8000/api/v1/dashboard", { headers: AUTH }),
-        fetch(`http://localhost:8000/api/v1/brands/${BRAND_ID}`, { headers: AUTH }),
-        fetch(`http://localhost:8000/api/v1/brands/${BRAND_ID}/assets`, { headers: AUTH }),
-      ]);
+      const authHeader = { Authorization: getAuthHeader() };
+      
+      // Fetch brands list to get active brand ID
+      const brandListRes = await fetch("http://localhost:8000/api/v1/brands", { headers: authHeader });
+      const brandListResult = await brandListRes.json();
+      
+      if (brandListResult.success && brandListResult.data && brandListResult.data.length > 0) {
+        const activeBrandId = brandListResult.data[0].id;
+        
+        const [dashRes, brandRes, assetsRes] = await Promise.all([
+          fetch("http://localhost:8000/api/v1/dashboard", { headers: authHeader }),
+          fetch(`http://localhost:8000/api/v1/brands/${activeBrandId}`, { headers: authHeader }),
+          fetch(`http://localhost:8000/api/v1/brands/${activeBrandId}/assets`, { headers: authHeader }),
+        ]);
 
-      if (dashRes.ok) {
-        const r = await dashRes.json();
-        if (r.success) setDashboard(r.data);
-      }
-      if (brandRes.ok) {
-        const r = await brandRes.json();
-        if (r.success && r.data) setBrandName(r.data.name);
-      }
-      if (assetsRes.ok) {
-        const r = await assetsRes.json();
-        if (r.success && r.data) setAssets(r.data.slice(0, 4));
+        if (dashRes.ok) {
+          const r = await dashRes.json();
+          if (r.success) setDashboard(r.data);
+        }
+        if (brandRes.ok) {
+          const r = await brandRes.json();
+          if (r.success && r.data) setBrandName(r.data.name);
+        }
+        if (assetsRes.ok) {
+          const r = await assetsRes.json();
+          if (r.success && r.data) setAssets(r.data.slice(0, 4));
+        }
       }
     } catch (err) {
       console.error("Dashboard fetch error:", err);

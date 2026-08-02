@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from app.schemas.auth import StandardResponse
-from app.schemas.validation import ValidationCheckRequest, ValidationReportDTO, IssueDTO
+from app.schemas.validation import ValidationCheckRequest, ValidationReportDTO, IssueDTO, LayeredAnalysisRequest, LayeredAnalysisResponseDTO
 from app.services.validation_service import ValidationService
 from app.api.deps import get_current_user
 from app.models.user import User
@@ -64,3 +64,12 @@ async def get_validation_report(campaign_id: str, current_user: User = Depends(g
 @router.post("/recheck", response_model=StandardResponse)
 async def recheck_validation(req: ValidationCheckRequest, current_user: User = Depends(get_current_user)):
     return await check_validation(req, current_user)
+
+@router.post("/layered-analysis", response_model=StandardResponse)
+async def layered_analysis(req: LayeredAnalysisRequest, current_user: User = Depends(get_current_user)):
+    result = await ValidationService.run_layered_analysis(current_user.organization_id, req)
+    return StandardResponse(
+        success=True,
+        message="Layered analysis completed successfully.",
+        data=result
+    )

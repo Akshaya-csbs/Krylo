@@ -4,11 +4,10 @@ import { useState, useRef, useEffect } from "react";
 import { Bell, Search, Menu } from "lucide-react";
 import { clsx } from "clsx";
 
-export function TopNav({ onMenuToggle }: { onMenuToggle: () => void }) {
+export function TopNav({ onMenuToggle, onBrandClick, onLogout }: { onMenuToggle: () => void, onBrandClick?: () => void, onLogout?: () => void }) {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
@@ -39,10 +38,20 @@ export function TopNav({ onMenuToggle }: { onMenuToggle: () => void }) {
       </div>
       
       <div className="flex items-center gap-4">
+        {/* Brand Button */}
+        {onBrandClick && (
+          <button
+            onClick={onBrandClick}
+            className="hidden md:flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm"
+          >
+            Brand
+          </button>
+        )}
+
         {/* Notifications Dropdown */}
         <div className="relative" ref={notifRef}>
           <button 
-            onClick={() => { setIsNotifOpen(!isNotifOpen); setIsProfileOpen(false); }}
+          onClick={() => setIsNotifOpen(!isNotifOpen)}
             className={clsx(
               "p-2 text-slate-500 rounded-full relative transition-colors",
               isNotifOpen ? "bg-slate-100" : "hover:bg-slate-100"
@@ -76,7 +85,6 @@ export function TopNav({ onMenuToggle }: { onMenuToggle: () => void }) {
             </div>
           )}
         </div>
-
       </div>
     </header>
   );

@@ -36,7 +36,9 @@ class OptimizationService:
         opt_result = MultimodalAnalyzer.optimize_content(
             identity_dict,
             version.text_content,
-            {"overall_score": prev_score}
+            {"overall_score": prev_score},
+            target_tone=req.target_tone or "Professional",
+            platform=campaign.platform or "Instagram"
         )
 
         new_version_num = campaign.current_version + 1

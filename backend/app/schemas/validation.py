@@ -25,3 +25,14 @@ class ValidationReportDTO(BaseModel):
     issues: List[IssueDTO]
     recommendations: List[str]
     created_at: str
+
+class LayeredAnalysisRequest(BaseModel):
+    brand_id: str
+    input_type: str  # 'text', 'image', 'pdf', 'link'
+    content: str     # Raw text, base64 image data, or URL depending on input_type
+
+class LayeredAnalysisResponseDTO(BaseModel):
+    summary: str
+    flaws: List[str]
+    recommendations: List[str]
+    refined_prompt: str

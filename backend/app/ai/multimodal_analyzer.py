@@ -161,8 +161,67 @@ class MultimodalAnalyzer:
         }
 
     @staticmethod
-    def optimize_content(identity: Dict[str, Any], text_content: str, current_validation: Dict[str, Any]) -> Dict[str, Any]:
-        optimized_text = f"{text_content.strip()} Bring home the trusted taste and quality that every family loves together!"
+    def is_meaningful(text: str) -> bool:
+        import re
+        text = text.strip()
+        if not text:
+            return False
+        # Remove punctuation to count actual words
+        clean_text = re.sub(r'[^\w\s]', '', text)
+        words = clean_text.split()
+        
+        # If there are no actual words, it's not meaningful
+        if not words:
+            return False
+            
+        if len(words) == 1:
+            word = words[0].lower()
+            if len(word) > 12: # Exceptionally long single word without spaces is likely gibberish
+                return False
+            # Check for absence of vowels
+            if not re.search(r'[aeiouy]', word):
+                return False
+            # Known random types
+            if word in ['asdf', 'test', 'qwer', 'njnni']:
+                return False
+        else:
+            # Check if all words lack vowels
+            has_vowel_word = False
+            for w in words:
+                if re.search(r'[aeiouy]', w.lower()):
+                    has_vowel_word = True
+                    break
+            if not has_vowel_word:
+                return False
+                
+        return True
+
+    @staticmethod
+    def optimize_content(identity: Dict[str, Any], text_content: str, current_validation: Dict[str, Any], target_tone: str = "Professional", platform: str = "Instagram") -> Dict[str, Any]:
+        if not MultimodalAnalyzer.is_meaningful(text_content):
+            raise ValueError("Enter a valid content")
+            
+        # Try LLM optimization first
+        llm_result = GroqBrandAnalyzer.optimize_content_with_llm(
+            identity=identity,
+            text_content=text_content,
+            current_validation=current_validation,
+            target_tone=target_tone,
+            platform=platform
+        )
+        if llm_result:
+            return llm_result
+
+        # Fallback to dynamic rule-based optimization logic
+        optimized_text = text_content.strip()
+        if platform.lower() == "linkedin":
+            optimized_text = f"Excited to share our latest update! {optimized_text}\n\nWe're committed to bringing quality to everything we do. What are your thoughts?\n\n#ProfessionalGrowth #Innovation"
+        elif platform.lower() == "instagram":
+            optimized_text = f"✨ {optimized_text} ✨\n\nBring home the trusted taste and quality that every family loves together! 💙\n\n#Quality #FamilyFirst #BrandValues"
+        elif platform.lower() in ["twitter / x", "twitter", "x"]:
+            optimized_text = f"{optimized_text} 🚀 Quality that speaks for itself. #Innovation"
+        else:
+            optimized_text = f"{optimized_text} Bring home the trusted taste and quality that every family loves together!"
         
         changes = [
             {

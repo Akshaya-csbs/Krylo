@@ -11,6 +11,7 @@ class RegisterRequest(BaseModel):
     full_name: str
     email: EmailStr
     password: str
+    role: str = "Manager"
 
 class LoginRequest(BaseModel):
     email: EmailStr

@@ -53,17 +53,38 @@ export function AssetIngestionView() {
   const [brandInfo, setBrandInfo] = useState<BrandInfo | null>(null);
   const [brandIdentity, setBrandIdentity] = useState<BrandIdentityData | null>(null);
 
-  const brandId = "66f4321949182390a845942d"; // Mock brand ID (24-char)
+  const [brandId, setBrandId] = useState<string>("");
+
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+    return token ? `Bearer ${token}` : "";
+  };
 
   useEffect(() => {
-    fetchBrandData();
+    const initBrand = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/v1/brands", {
+          headers: { 'Authorization': getAuthHeader() }
+        });
+        const result = await response.json();
+        if (result.success && result.data && result.data.length > 0) {
+          const activeId = result.data[0].id;
+          setBrandId(activeId);
+          fetchBrandData(activeId);
+        }
+      } catch (err) {
+        console.error("Failed to load active brand:", err);
+      }
+    };
+    initBrand();
   }, []);
 
-  const fetchBrandData = async () => {
+  const fetchBrandData = async (activeId = brandId) => {
+    if (!activeId) return;
     try {
       // 1. Fetch Brand Info
-      const brandRes = await fetch(`http://localhost:8000/api/v1/brands/${brandId}`, {
-        headers: { 'Authorization': 'Bearer mock_token_for_development' }
+      const brandRes = await fetch(`http://localhost:8000/api/v1/brands/${activeId}`, {
+        headers: { 'Authorization': getAuthHeader() }
       });
       if (brandRes.ok) {
         const brandResult = await brandRes.json();
@@ -74,8 +95,8 @@ export function AssetIngestionView() {
       }
 
       // 2. Fetch Assets
-      const assetsRes = await fetch(`http://localhost:8000/api/v1/brands/${brandId}/assets`, {
-        headers: { 'Authorization': 'Bearer mock_token_for_development' }
+      const assetsRes = await fetch(`http://localhost:8000/api/v1/brands/${activeId}/assets`, {
+        headers: { 'Authorization': getAuthHeader() }
       });
       if (assetsRes.ok) {
         const assetsResult = await assetsRes.json();
@@ -85,8 +106,8 @@ export function AssetIngestionView() {
       }
 
       // 3. Fetch Identity (for purpose/overview)
-      const idRes = await fetch(`http://localhost:8000/api/v1/identity/${brandId}`, {
-        headers: { 'Authorization': 'Bearer mock_token_for_development' }
+      const idRes = await fetch(`http://localhost:8000/api/v1/identity/${activeId}`, {
+        headers: { 'Authorization': getAuthHeader() }
       });
       if (idRes.ok) {
         const idResult = await idRes.json();
@@ -146,7 +167,7 @@ export function AssetIngestionView() {
   };
 
   const handleUpload = async () => {
-    if (files.length === 0) return;
+    if (files.length === 0 || !brandId) return;
     
     setIsUploading(true);
     setUploadStatus('idle');
@@ -158,7 +179,7 @@ export function AssetIngestionView() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer mock_token_for_development'
+          'Authorization': getAuthHeader()
         },
         body: JSON.stringify({ industry: brandCategory })
       });
@@ -177,7 +198,7 @@ export function AssetIngestionView() {
       const response = await fetch(`http://localhost:8000/api/v1/brands/${brandId}/assets`, {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer mock_token_for_development'
+          'Authorization': getAuthHeader()
         },
         body: formData,
       });
@@ -187,13 +208,21 @@ export function AssetIngestionView() {
       if (response.ok && result.success) {
         setUploadStatus('success');
         setUploadMessage(result.message || "Assets uploaded successfully!");
+        
+        // Trigger Brand Rebuild
+        await fetch(`http://localhost:8000/api/v1/identity/build/${brandId}?force_rebuild=true`, {
+          method: 'POST',
+          headers: {
+            'Authorization': getAuthHeader()
+          }
+        });
       } else {
-        setUploadStatus('success');
-        setUploadMessage("Assets uploaded successfully! (Simulated)");
+        setUploadStatus('error');
+        setUploadMessage(result.message || "Failed to upload assets.");
       }
     } catch (error) {
-      setUploadStatus('success');
-      setUploadMessage("Assets uploaded successfully! (Simulated)");
+      setUploadStatus('error');
+      setUploadMessage("An error occurred during upload.");
       console.error(error);
     } finally {
       setFiles([]); // Clear files

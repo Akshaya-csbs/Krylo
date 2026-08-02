@@ -31,6 +31,7 @@ class BrandAsset(Document):
     mime_type: str
     status: str = "uploaded"  # uploaded, active, archived
     processing_status: str = "pending"  # uploaded -> queued -> processing -> completed -> failed
+    extracted_text: Optional[str] = None  # AI-extracted text content from PDFs, docs, images
     metadata: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

@@ -97,6 +97,12 @@ class BrandService:
         from app.config import settings
         await AIAnalysisService.analyze_assets_and_update_identity(brand_id, uploaded_assets, settings.GROQ_API_KEY)
         
+        # Update job progress and status
+        job.status = "completed"
+        job.progress = 100
+        job.current_stage = "Brand Intelligence Updated via AI Analysis"
+        await job.save()
+        
         return uploaded_assets, job
 
     @staticmethod

@@ -69,7 +69,8 @@ export function SettingsView() {
         },
         body: JSON.stringify({
           full_name: profile.fullName,
-          email: profile.email
+          email: profile.email,
+          role: profile.role
         })
       });
 
@@ -87,12 +88,14 @@ export function SettingsView() {
       });
 
       if (profileRes.ok && orgRes.ok) {
-        // Update local storage user profile name so sidebar updates
+        // Update local storage user profile name, email and role so sidebar updates
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
           try {
             const userObj = JSON.parse(storedUser);
             userObj.full_name = profile.fullName;
+            userObj.email = profile.email;
+            userObj.role = profile.role;
             localStorage.setItem("user", JSON.stringify(userObj));
           } catch(e) {}
         }
@@ -156,8 +159,10 @@ export function SettingsView() {
               <input 
                 type="email" 
                 value={profile.email}
-                disabled
-                className="w-full border border-slate-200 rounded-lg p-3 text-sm bg-slate-50 text-slate-400 cursor-not-allowed select-none"
+                onChange={e => setProfile({...profile, email: e.target.value})}
+                required
+                placeholder="email@example.com"
+                className="w-full border border-slate-200 rounded-lg p-3 text-sm outline-none focus:ring-2 focus:ring-primary-500 bg-white text-slate-800 transition-all"
               />
             </div>
 
@@ -165,9 +170,10 @@ export function SettingsView() {
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Role</label>
               <input 
                 type="text" 
-                value={profile.role || "N/A"}
-                disabled
-                className="w-full border border-slate-200 rounded-lg p-3 text-sm bg-slate-50 text-slate-400 cursor-not-allowed select-none"
+                value={profile.role || ""}
+                onChange={e => setProfile({...profile, role: e.target.value})}
+                placeholder="Role"
+                className="w-full border border-slate-200 rounded-lg p-3 text-sm outline-none focus:ring-2 focus:ring-primary-500 bg-white text-slate-800 transition-all"
               />
             </div>
 

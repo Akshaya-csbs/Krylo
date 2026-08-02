@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, TrendingUp, Activity, BarChart2, Zap, Target, Search, Hash } from "lucide-react";
+import { Loader2, TrendingUp, Activity, BarChart2, Zap, Target, Search, Hash, PenTool } from "lucide-react";
 import { clsx } from "clsx";
 
 interface TrendReportDTO {
   id: string;
+  brand_id?: string;
   trend: string;
   category: string;
   alignment_score: number;
@@ -20,23 +21,65 @@ interface TrendReportDTO {
 export function TrendAnalyticsView() {
   const [trends, setTrends] = useState<TrendReportDTO[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [generatingFor, setGeneratingFor] = useState<string | null>(null);
+  const [brandId, setBrandId] = useState<string>("");
 
-  const brandId = "66f4321949182390a845942d"; // Mock brand ID (24-char)
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+    return token ? `Bearer ${token}` : "";
+  };
 
+  // 1. Initially fetch active brand, then load existing trends from the backend
   useEffect(() => {
-    // Optionally fetch existing trends on mount, or wait for user to hit Discover
+    const fetchBrandsAndTrends = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const brandResponse = await fetch("http://localhost:8000/api/v1/brands", {
+          headers: { "Authorization": getAuthHeader() }
+        });
+        const brandResult = await brandResponse.json();
+        
+        let activeBrandId = "";
+        if (brandResult.success && brandResult.data && brandResult.data.length > 0) {
+          activeBrandId = brandResult.data[0].id;
+          setBrandId(activeBrandId);
+        } else {
+          setError("No brand found. Please create a brand first.");
+          setIsLoading(false);
+          return;
+        }
+
+        const trendsResponse = await fetch(`http://localhost:8000/api/v1/trends?brand_id=${activeBrandId}`, {
+          headers: { "Authorization": getAuthHeader() }
+        });
+        const trendsResult = await trendsResponse.json();
+        if (trendsResponse.ok && trendsResult.success) {
+          setTrends(trendsResult.data || []);
+        } else {
+          setTrends([]);
+        }
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load existing trends.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchBrandsAndTrends();
   }, []);
 
+  // 3. Discover trends action
   const discoverTrends = async () => {
     setIsLoading(true);
-    setError("");
+    setError(null);
     try {
       const response = await fetch(`http://localhost:8000/api/v1/trends/discover`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer mock_token_for_development"
+          "Authorization": getAuthHeader()
         },
         body: JSON.stringify({
           brand_id: brandId,
@@ -49,44 +92,45 @@ export function TrendAnalyticsView() {
       if (response.ok && result.success) {
         setTrends(result.data);
       } else {
-        // Hackathon fallback
-        setTrends(getMockTrends());
+        setError(result.message || "Failed to discover trends.");
       }
     } catch (err) {
       console.error(err);
-      // Hackathon fallback
-      setTrends(getMockTrends());
+      setError("An error occurred while discovering trends.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getMockTrends = (): TrendReportDTO[] => ([
-    {
-      id: "t1",
-      trend: "Ethical AI in Enterprise",
-      category: "Technology",
-      alignment_score: 95,
-      trend_score: 88,
-      competition_score: 45,
-      forecast_score: 92,
-      recommended_platform: "LinkedIn",
-      best_posting_time: "Tuesday, 10:00 AM",
-      hashtags: ["EthicalAI", "EnterpriseTech", "FutureOfWork"]
-    },
-    {
-      id: "t2",
-      trend: "Sustainable Scaling",
-      category: "Business",
-      alignment_score: 85,
-      trend_score: 92,
-      competition_score: 60,
-      forecast_score: 89,
-      recommended_platform: "Twitter / X",
-      best_posting_time: "Wednesday, 2:00 PM",
-      hashtags: ["Sustainability", "TechScaling", "GreenTech"]
+  const generateCampaign = async (trendName: string) => {
+    setGeneratingFor(trendName);
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/trends/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": getAuthHeader()
+        },
+        body: JSON.stringify({
+          brand_id: brandId,
+          trend_name: trendName
+        }),
+      });
+      
+      const result = await response.json();
+      if (response.ok && result.success) {
+        // Optional: you can show a success toast here or redirect
+        alert(`Campaign generated successfully! Campaign ID: ${result.data.campaign_id}`);
+      } else {
+        alert("Failed to generate campaign: " + (result.message || "Unknown error"));
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error generating campaign.");
+    } finally {
+      setGeneratingFor(null);
     }
-  ]);
+  };
 
   const ScoreCircle = ({ score, label }: { score: number, label: string }) => {
     const radius = 24;
@@ -101,7 +145,7 @@ export function TrendAnalyticsView() {
             <circle cx="32" cy="32" r="24" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-slate-100" />
             <circle cx="32" cy="32" r="24" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} className={clsx("transition-all duration-1000", colorClass)} />
           </svg>
-          <span className="absolute text-sm font-bold text-slate-800">{score}</span>
+          <span className="absolute text-sm font-bold text-slate-800">{score}%</span>
         </div>
         <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider text-center">{label}</span>
       </div>
@@ -122,10 +166,10 @@ export function TrendAnalyticsView() {
         <button 
           onClick={discoverTrends}
           disabled={isLoading}
-          className="btn-primary flex items-center gap-2"
+          className="btn-primary flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-          {isLoading ? "Analyzing Global Patterns..." : "Discover AI Trends"}
+          {isLoading ? "Scanning Market Signals..." : "Discover AI Trends"}
         </button>
       </div>
 
@@ -136,13 +180,14 @@ export function TrendAnalyticsView() {
         </div>
       )}
 
+      {/* 2. Empty State Implementation */}
       {!isLoading && trends.length === 0 && !error && (
-        <div className="glass-card p-12 flex flex-col items-center justify-center text-center">
-          <div className="w-16 h-16 bg-primary-50 text-primary-500 flex items-center justify-center rounded-2xl mb-4 shadow-sm border border-primary-100">
+        <div className="bg-white rounded-xl border border-slate-200 p-12 flex flex-col items-center justify-center text-center shadow-sm">
+          <div className="w-16 h-16 bg-[#F0F7FF] text-[#2563EB] flex items-center justify-center rounded-2xl mb-4 border border-[#E0EFFF]">
             <Zap className="w-8 h-8" />
           </div>
           <h2 className="text-xl font-bold text-slate-800 mb-2">No Trends Discovered Yet</h2>
-          <p className="text-slate-500 max-w-md mb-6">
+          <p className="text-slate-600 max-w-md mb-6">
             Click the "Discover AI Trends" button above to scan social signals and market data for high-impact opportunities tailored to your brand DNA.
           </p>
         </div>
@@ -151,7 +196,7 @@ export function TrendAnalyticsView() {
       {isLoading && trends.length === 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="glass-card p-6 animate-pulse">
+            <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 animate-pulse shadow-sm">
               <div className="h-6 bg-slate-200 rounded w-1/2 mb-4"></div>
               <div className="h-4 bg-slate-100 rounded w-1/4 mb-6"></div>
               <div className="flex justify-between">
@@ -164,10 +209,11 @@ export function TrendAnalyticsView() {
         </div>
       )}
 
+      {/* 4. Populated State (Data Visualization) */}
       {trends.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {trends.map((trend) => (
-            <div key={trend.id} className="glass-card p-6 flex flex-col justify-between border-t-4 border-t-primary-500">
+            <div key={trend.id} className="bg-white rounded-xl p-6 flex flex-col justify-between shadow-sm border border-slate-200 border-t-4 border-t-blue-500">
               <div>
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="text-lg font-bold text-slate-800 leading-tight">{trend.trend}</h3>
@@ -198,15 +244,28 @@ export function TrendAnalyticsView() {
                   <span className="font-semibold text-slate-800">{trend.best_posting_time}</span>
                 </div>
                 
-                <div className="pt-2">
+                <div className="pt-2 mb-2">
                   <div className="flex flex-wrap gap-2">
                     {trend.hashtags.map((tag, idx) => (
-                      <span key={idx} className="flex items-center text-xs font-medium text-primary-600 bg-primary-50 px-2 py-1 rounded-full">
+                      <span key={idx} className="flex items-center text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
                         <Hash className="w-3 h-3 mr-0.5" /> {tag}
                       </span>
                     ))}
                   </div>
                 </div>
+
+                <button 
+                  onClick={() => generateCampaign(trend.trend)}
+                  disabled={generatingFor === trend.trend}
+                  className="w-full flex items-center justify-center gap-2 border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {generatingFor === trend.trend ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
+                  ) : (
+                    <PenTool className="w-4 h-4 text-slate-500" />
+                  )}
+                  {generatingFor === trend.trend ? "Generating..." : "Generate Campaign"}
+                </button>
               </div>
             </div>
           ))}

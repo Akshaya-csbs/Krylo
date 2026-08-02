@@ -21,8 +21,55 @@ export function BrandIdentityView() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRebuilding, setIsRebuilding] = useState(false);
   const [error, setError] = useState("");
+  const [brandId, setBrandId] = useState("");
 
-  const brandId = "66f4321949182390a845942d";
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+    return token ? `Bearer ${token}` : "";
+  };
+
+  useEffect(() => {
+    const fetchBrandsAndIdentity = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const brandResponse = await fetch("http://localhost:8000/api/v1/brands", {
+          headers: { 'Authorization': getAuthHeader() }
+        });
+        const brandResult = await brandResponse.json();
+        
+        let activeBrandId = "";
+        if (brandResult.success && brandResult.data && brandResult.data.length > 0) {
+          activeBrandId = brandResult.data[0].id;
+          setBrandId(activeBrandId);
+        } else {
+          setError("No brand found. Please create a brand first.");
+          setIsLoading(false);
+          return;
+        }
+
+        const response = await fetch(`http://localhost:8000/api/v1/identity/${activeBrandId}`, {
+          headers: { 'Authorization': getAuthHeader() }
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            setIdentity(result.data);
+          } else {
+            setIdentity(null);
+          }
+        } else {
+          setIdentity(null);
+        }
+      } catch (err) {
+        console.error(err);
+        setIdentity(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchBrandsAndIdentity();
+  }, []);
 
   // Safely convert Dict or string field to a displayable string
   const safeText = (field: Record<string, unknown> | string | undefined): string => {
@@ -40,16 +87,13 @@ export function BrandIdentityView() {
     return [field];
   };
 
-  useEffect(() => {
-    fetchIdentity();
-  }, []);
-
-  const fetchIdentity = async () => {
+  const fetchIdentity = async (activeBrandId = brandId) => {
+    if (!activeBrandId) return;
     setIsLoading(true);
     setError("");
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/identity/${brandId}`, {
-        headers: { 'Authorization': 'Bearer mock_token_for_development' }
+      const response = await fetch(`http://localhost:8000/api/v1/identity/${activeBrandId}`, {
+        headers: { 'Authorization': getAuthHeader() }
       });
       if (response.ok) {
         const result = await response.json();
@@ -75,7 +119,7 @@ export function BrandIdentityView() {
     try {
       const response = await fetch(`http://localhost:8000/api/v1/identity/build/${brandId}?force_rebuild=true`, {
         method: "POST",
-        headers: { 'Authorization': 'Bearer mock_token_for_development' }
+        headers: { 'Authorization': getAuthHeader() }
       });
       const result = await response.json();
       if (response.ok && result.success) {

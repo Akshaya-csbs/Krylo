@@ -6,15 +6,25 @@ import { TopNav } from "@/components/layout/TopNav";
 import { OverviewView } from "@/components/dashboard/OverviewView";
 import { AssetIngestionView } from "@/components/dashboard/AssetIngestionView";
 import { BrandIdentityView } from "@/components/dashboard/BrandIdentityView";
-import { ValidationView } from "@/components/dashboard/ValidationView";
+import { LayeredAnalysisView } from "@/components/dashboard/LayeredAnalysisView";
 import { TrendAnalyticsView } from "@/components/dashboard/TrendAnalyticsView";
 import { ImpactSimulationView } from "@/components/dashboard/ImpactSimulationView";
 import { SettingsView } from "@/components/dashboard/SettingsView";
-import { CopilotView } from "@/components/dashboard/CopilotView";
-
-export default function DashboardClient() {
+import { useEffect } from "react";
+export function DashboardClient({ onNavigate }: { onNavigate?: (view: string) => void }) {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      if (onNavigate) {
+        onNavigate("login");
+      } else {
+        window.location.href = "/login";
+      }
+    }
+  }, [onNavigate]);
 
   const renderView = () => {
     switch (activeTab) {
@@ -24,14 +34,12 @@ export default function DashboardClient() {
         return <AssetIngestionView />;
       case "identity":
         return <BrandIdentityView />;
-      case "validation":
-        return <ValidationView />;
+      case "layered-analysis":
+        return <LayeredAnalysisView />;
       case "trends":
         return <TrendAnalyticsView />;
       case "simulation":
         return <ImpactSimulationView />;
-      case "copilot":
-        return <CopilotView />;
       case "settings":
         return <SettingsView />;
       default:
@@ -48,7 +56,11 @@ export default function DashboardClient() {
         setIsOpen={setIsMobileMenuOpen} 
       />
       <div className="flex-1 flex flex-col min-w-0">
-        <TopNav onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
+        <TopNav 
+          onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+          onBrandClick={() => setActiveTab("identity")}
+          onLogout={() => onNavigate && onNavigate("login")}
+        />
         <main className="flex-1 p-4 lg:p-8 overflow-y-auto">
           <div className="mx-auto max-w-7xl">
             {renderView()}

@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Bell, Search, Menu } from "lucide-react";
+import { Bell, Search, Menu, User, LogOut, ChevronDown } from "lucide-react";
 import { clsx } from "clsx";
 
-export function TopNav({ onMenuToggle }: { onMenuToggle: () => void }) {
+export function TopNav({ onMenuToggle, onBrandClick, onLogout }: { onMenuToggle: () => void, onBrandClick?: () => void, onLogout?: () => void }) {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const [user, setUser] = useState<{full_name?: string, role?: string, email?: string} | null>(null);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -14,10 +17,31 @@ export function TopNav({ onMenuToggle }: { onMenuToggle: () => void }) {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setIsNotifOpen(false);
       }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
+
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {}
+    }
+
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    if (onLogout) {
+      onLogout();
+    } else {
+      window.location.href = "/login";
+    }
+  };
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-10">
@@ -39,6 +63,16 @@ export function TopNav({ onMenuToggle }: { onMenuToggle: () => void }) {
       </div>
       
       <div className="flex items-center gap-4">
+        {/* Brand Button */}
+        {onBrandClick && (
+          <button
+            onClick={onBrandClick}
+            className="hidden md:flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm"
+          >
+            Brand
+          </button>
+        )}
+
         {/* Notifications Dropdown */}
         <div className="relative" ref={notifRef}>
           <button 
@@ -76,7 +110,6 @@ export function TopNav({ onMenuToggle }: { onMenuToggle: () => void }) {
             </div>
           )}
         </div>
-
       </div>
     </header>
   );

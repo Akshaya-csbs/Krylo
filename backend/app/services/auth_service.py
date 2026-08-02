@@ -28,7 +28,7 @@ class AuthService:
             full_name=req.full_name,
             email=req.email,
             password_hash=hashed_pw,
-            role="brand_manager"
+            role=req.role
         )
         await user.insert()
 

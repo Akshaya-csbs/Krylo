@@ -98,24 +98,18 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen, onLogout }
         </div>
         
         <div className="p-4 border-t border-slate-100 flex flex-col gap-2">
-          <button
+          <div 
             onClick={() => {
               setActiveTab("settings");
               setIsOpen(false);
             }}
             className={twMerge(
               clsx(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left",
-                activeTab === "settings"
-                  ? "bg-primary-50 text-primary-700"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                "flex items-center justify-between group cursor-pointer hover:bg-slate-50 transition-colors p-2 rounded-lg",
+                activeTab === "settings" && "bg-primary-50"
               )
             )}
           >
-            <Settings className={clsx("w-5 h-5", activeTab === "settings" ? "text-primary-600" : "text-slate-400")} />
-            Settings
-          </button>
-          <div className="flex items-center justify-between group cursor-pointer hover:bg-slate-50 transition-colors p-2 rounded-lg">
             <div className="flex items-center gap-3 overflow-hidden">
               <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-lg shrink-0">
                 {user?.full_name ? user.full_name.charAt(0).toUpperCase() : <UserCircle className="w-6 h-6" />}
@@ -125,7 +119,13 @@ export function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen, onLogout }
                 <span className="text-xs text-slate-500 truncate">{user?.email || "user@example.com"}</span>
               </div>
             </div>
-            <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLogout();
+              }} 
+              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+            >
               <LogOut className="w-5 h-5" />
             </button>
           </div>

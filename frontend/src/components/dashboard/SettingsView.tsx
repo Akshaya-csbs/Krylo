@@ -22,6 +22,12 @@ export function SettingsView() {
     website: "https://example.com"
   });
 
+  const [brandId, setBrandId] = useState("");
+  const [brandDetails, setBrandDetails] = useState({
+    name: "",
+    website: ""
+  });
+
   const [apiKeys, setApiKeys] = useState({
     groq: "",
     openai: ""
@@ -33,12 +39,17 @@ export function SettingsView() {
     securityAlerts: true
   });
 
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+    return token ? `Bearer ${token}` : "";
+  };
+
   // Load data from backend on mount
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         const response = await fetch("http://localhost:8000/api/v1/settings", {
-          headers: { 'Authorization': 'Bearer mock_token_for_development' }
+          headers: { 'Authorization': getAuthHeader() }
         });
         if (response.ok) {
           const result = await response.json();
@@ -52,7 +63,29 @@ export function SettingsView() {
       }
     };
     
+    const fetchBrands = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/api/v1/brands", {
+          headers: { 'Authorization': getAuthHeader() }
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data && result.data.length > 0) {
+            const activeBrand = result.data[0];
+            setBrandId(activeBrand.id);
+            setBrandDetails({
+              name: activeBrand.name || "",
+              website: activeBrand.website || ""
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch brands", err);
+      }
+    };
+
     fetchSettings();
+    fetchBrands();
 
     const savedGroq = localStorage.getItem("groq_api_key");
     if (savedGroq) setApiKeys(prev => ({ ...prev, groq: savedGroq }));
@@ -66,11 +99,11 @@ export function SettingsView() {
       if (apiKeys.groq) localStorage.setItem("groq_api_key", apiKeys.groq);
       
       // Save Profile
-      await fetch("http://localhost:8000/api/v1/settings/profile", {
+      const profileRes = await fetch("http://localhost:8000/api/v1/settings/profile", {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer mock_token_for_development'
+          'Authorization': getAuthHeader()
         },
         body: JSON.stringify({
           full_name: profile.fullName,
@@ -78,12 +111,27 @@ export function SettingsView() {
         })
       });
 
+      // Save Brand details
+      if (brandId) {
+        await fetch(`http://localhost:8000/api/v1/brands/${brandId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': getAuthHeader()
+          },
+          body: JSON.stringify({
+            name: brandDetails.name,
+            website: brandDetails.website
+          })
+        });
+      }
+
       // Save Organization
       await fetch("http://localhost:8000/api/v1/settings/organization", {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer mock_token_for_development'
+          'Authorization': getAuthHeader()
         },
         body: JSON.stringify({
           name: org.name,
@@ -92,8 +140,23 @@ export function SettingsView() {
         })
       });
 
+      // Update local storage user profile name so sidebar updates
+      if (profileRes.ok) {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          try {
+            const userObj = JSON.parse(storedUser);
+            userObj.full_name = profile.fullName;
+            localStorage.setItem("user", JSON.stringify(userObj));
+          } catch(e) {}
+        }
+      }
+
       setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      setTimeout(() => {
+        setShowSuccess(false);
+        window.location.reload();
+      }, 1500);
     } catch (err) {
       console.error("Failed to save settings", err);
     } finally {
@@ -187,7 +250,7 @@ export function SettingsView() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">Full Name</label>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Name</label>
                     <input 
                       type="text" 
                       value={profile.fullName}
@@ -211,6 +274,24 @@ export function SettingsView() {
                       value={profile.role}
                       disabled
                       className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 text-slate-500 cursor-not-allowed"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Brand Name</label>
+                    <input 
+                      type="text" 
+                      value={brandDetails.name}
+                      onChange={e => setBrandDetails({...brandDetails, name: e.target.value})}
+                      className="w-full border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Brand Domain</label>
+                    <input 
+                      type="url" 
+                      value={brandDetails.website}
+                      onChange={e => setBrandDetails({...brandDetails, website: e.target.value})}
+                      className="w-full border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-500 bg-white"
                     />
                   </div>
                 </div>
